@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Registration & Login Test</h1>
+        <p>This page tests the JWT authentication flow for normal user registration and login.</p>
+        
+        <h2>Test Registration</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" value="Test User" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="password123" required>
+            </div>
+            <button type="submit" id="registerBtn">🔐 Test Registration</button>
+        </form>
+
+        <h2>Test Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" value="password123" required>
+            </div>
+            <button type="submit" id="loginBtn">🔓 Test Login</button>
+        </form>
+
+        <button id="testTokenBtn" style="margin-top: 20px;">🔑 Test Current Token</button>
+        <button id="clearTokenBtn" style="margin-left: 10px;">🗑️ Clear Token</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        // Generate a unique email for testing
+        function generateTestEmail() {
+            const timestamp = Date.now();
+            return `testuser${timestamp}@example.com`;
+        }
+
+        // Log function
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}\n`;
+            
+            if (!resultDiv.textContent) {
+                resultDiv.className = `result ${type}`;
+                resultDiv.textContent = entry;
+            } else {
+                resultDiv.textContent += entry;
+            }
+            
+            console.log(message);
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+        }
+
+        // Registration test
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearResults();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value || generateTestEmail();
+            const password = document.getElementById('password').value;
+            
+            // Update email field if it was auto-generated
+            document.getElementById('email').value = email;
+            document.getElementById('loginEmail').value = email; // Also set for login form
+            
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.disabled = true;
+            registerBtn.textContent = '⏳ Registering...';
+            
+            try {
+                log('🚀 Starting registration test...', 'info');
+                log(`📧 Email: ${email}`, 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Registration successful!', 'success');
+                    log(`📄 Response: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        log('🔑 JWT token saved to localStorage', 'success');
+                        log('🎉 Frontend AuthContext should now work correctly!', 'success');
+                    } else {
+                        log('❌ WARNING: No token in response - this would break the frontend!', 'error');
+                    }
+                } else {
+                    log(`❌ Registration failed: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Network error: ${error.message}`, 'error');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = '🔐 Test Registration';
+            }
+        });
+
+        // Login test
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = '⏳ Logging in...';
+            
+            try {
+                log('🔓 Starting login test...', 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Login successful!', 'success');
+                    log(`📄 Response: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        log('🔑 JWT token updated in localStorage', 'success');
+                    } else {
+                        log('❌ WARNING: No token in response!', 'error');
+                    }
+                } else {
+                    log(`❌ Login failed: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Network error: ${error.message}`, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '🔓 Test Login';
+            }
+        });
+
+        // Test current token
+        document.getElementById('testTokenBtn').addEventListener('click', async () => {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('❌ No token found in localStorage', 'error');
+                return;
+            }
+            
+            try {
+                log('🔍 Testing current token...', 'info');
+                log(`🔑 Token: ${token.substring(0, 20)}...`, 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Token authentication successful!', 'success');
+                    log(`👤 User data: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    log(`❌ Token authentication failed: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Network error: ${error.message}`, 'error');
+            }
+        });
+
+        // Clear token
+        document.getElementById('clearTokenBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            log('🗑️ Token cleared from localStorage', 'info');
+        });
+
+        // Auto-generate email on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('email').value = generateTestEmail();
+        });
+    </script>
+</body>
+</html>

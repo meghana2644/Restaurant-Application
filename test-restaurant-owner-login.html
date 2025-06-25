@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Owner Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 4px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Restaurant Owner Login Test</h1>
+    
+    <div class="container">
+        <h2>🔐 Login Test</h2>
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" value="pizza@restaurant.com" required>
+            <input type="password" id="password" placeholder="Password" value="owner123" required>
+            <button type="submit">🔓 Test Login</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>📊 Quick Dashboard Test</h2>
+        <button id="testDashboard" disabled>📈 Test Dashboard</button>
+        <button id="testMenuItems" disabled>🍕 Test Menu Items</button>
+        <button id="clearToken">🗑️ Clear Token</button>
+    </div>
+
+    <div class="container">
+        <h2>📄 Test Results</h2>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let currentToken = null;
+        
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}\n`;
+            
+            if (!resultDiv.textContent) {
+                resultDiv.className = `result ${type}`;
+                resultDiv.textContent = entry;
+            } else {
+                resultDiv.textContent += entry;
+            }
+            
+            console.log(message);
+        }
+
+        function enableDashboardButtons() {
+            document.getElementById('testDashboard').disabled = false;
+            document.getElementById('testMenuItems').disabled = false;
+        }
+
+        function disableDashboardButtons() {
+            document.getElementById('testDashboard').disabled = true;
+            document.getElementById('testMenuItems').disabled = true;
+        }
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                log('🔐 Testing restaurant owner login...', 'info');
+                
+                const response = await fetch(`${API_BASE}/restaurant-owner/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.token;
+                    localStorage.setItem('token', currentToken);
+                    
+                    log('✅ LOGIN SUCCESSFUL!', 'success');
+                    log(`📧 Email: ${data.user.email}`, 'success');
+                    log(`👤 Name: ${data.user.name}`, 'success');
+                    log(`🎯 Role: ${data.user.role}`, 'success');
+                    log(`🏪 Restaurant ID: ${data.user.restaurantId}`, 'success');
+                    log(`🔑 Token: ${currentToken ? 'Received' : 'Missing'}`, 'success');
+                    
+                    enableDashboardButtons();
+                } else {
+                    log(`❌ LOGIN FAILED: ${data.message}`, 'error');
+                    log(`Status: ${response.status}`, 'error');
+                    currentToken = null;
+                    disableDashboardButtons();
+                }
+                
+            } catch (error) {
+                log(`💥 LOGIN ERROR: ${error.message}`, 'error');
+                currentToken = null;
+                disableDashboardButtons();
+            }
+        });
+
+        // Dashboard test
+        document.getElementById('testDashboard').addEventListener('click', async () => {
+            if (!currentToken) {
+                log('❌ No token available. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                log('📈 Testing dashboard endpoint...', 'info');
+                
+                const response = await fetch(`${API_BASE}/restaurant-owner/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ DASHBOARD ACCESS SUCCESSFUL!', 'success');
+                    log(`🏪 Restaurant: ${data.restaurant?.name}`, 'success');
+                    log(`📦 Total Orders: ${data.totalOrders}`, 'success');
+                    log(`💰 Total Revenue: ₹${data.totalRevenue}`, 'success');
+                    log(`📋 Recent Orders: ${data.recentOrders?.length}`, 'success');
+                } else {
+                    log(`❌ DASHBOARD FAILED: ${data.message}`, 'error');
+                    log(`Status: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 DASHBOARD ERROR: ${error.message}`, 'error');
+            }
+        });
+
+        // Menu items test
+        document.getElementById('testMenuItems').addEventListener('click', async () => {
+            if (!currentToken) {
+                log('❌ No token available. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                log('🍕 Testing menu items endpoint...', 'info');
+                
+                const response = await fetch(`${API_BASE}/restaurant-owner/menu-items`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ MENU ITEMS ACCESS SUCCESSFUL!', 'success');
+                    log(`🍽️ Menu Items Count: ${data.length}`, 'success');                    if (data.length > 0) {
+                        log(`📋 Sample Item: ${data[0].name} - ₹${data[0].price}`, 'success');
+                    }
+                } else {
+                    log(`❌ MENU ITEMS FAILED: ${data.message}`, 'error');
+                    log(`Status: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 MENU ITEMS ERROR: ${error.message}`, 'error');
+            }
+        });
+
+        // Clear token
+        document.getElementById('clearToken').addEventListener('click', () => {
+            currentToken = null;
+            localStorage.removeItem('token');
+            disableDashboardButtons();
+            log('🗑️ Token cleared', 'info');
+        });
+
+        // Check for existing token on page load
+        const existingToken = localStorage.getItem('token');
+        if (existingToken) {
+            currentToken = existingToken;
+            enableDashboardButtons();
+            log('🔑 Found existing token in localStorage', 'info');
+        }
+    </script>
+</body>
+</html>

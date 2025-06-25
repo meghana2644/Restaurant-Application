@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Restaurant Creation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .form-data { background: #e9ecef; padding: 15px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Restaurant Creation Validation Test</h1>
+        
+        <div class="test-section info">
+            <h2>Test Overview</h2>
+            <p>This test validates that restaurant creation now includes all required fields and proper validation.</p>
+            <p><strong>Issue:</strong> POST /api/admin/restaurants was returning 400 validation errors due to missing required fields.</p>
+            <p><strong>Fix:</strong> Added client-side validation and missing form fields (state, zipCode, country).</p>
+        </div>
+
+        <div class="test-section">
+            <h2>1. Test Valid Restaurant Data</h2>
+            <button onclick="testValidRestaurant()">Test Valid Data</button>
+            <div id="validTest"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test Invalid Restaurant Data</h2>
+            <button onclick="testInvalidRestaurant()">Test Invalid Data</button>
+            <div id="invalidTest"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Test URL Validation</h2>
+            <button onclick="testUrlValidation()">Test URL Validation</button>
+            <div id="urlTest"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Test Email Validation</h2>
+            <button onclick="testEmailValidation()">Test Email Validation</button>
+            <div id="emailTest"></div>
+        </div>
+    </div>
+
+    <script>
+        // Mock validation function from the updated AdminRestaurants.jsx
+        function validateRestaurantForm(newRestaurant) {
+            const errors = [];
+            
+            // Check required text fields
+            if (!newRestaurant.name.trim()) errors.push('Restaurant name is required');
+            if (!newRestaurant.description.trim()) errors.push('Description is required');
+            if (!newRestaurant.ownerEmail.trim()) errors.push('Owner email is required');
+            if (!newRestaurant.deliveryTime.trim()) errors.push('Delivery time is required');
+            
+            // Check URLs
+            try {
+                if (!newRestaurant.imageUrl.trim()) {
+                    errors.push('Image URL is required');
+                } else {
+                    new URL(newRestaurant.imageUrl);
+                }
+            } catch {
+                errors.push('Image URL must be a valid URL');
+            }
+            
+            try {
+                if (!newRestaurant.bannerUrl.trim()) {
+                    errors.push('Banner URL is required');
+                } else {
+                    new URL(newRestaurant.bannerUrl);
+                }
+            } catch {
+                errors.push('Banner URL must be a valid URL');
+            }
+            
+            // Check email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (newRestaurant.ownerEmail && !emailRegex.test(newRestaurant.ownerEmail)) {
+                errors.push('Owner email must be a valid email address');
+            }
+            
+            // Check address fields
+            if (!newRestaurant.address.street.trim()) errors.push('Street address is required');
+            if (!newRestaurant.address.city.trim()) errors.push('City is required');
+            if (!newRestaurant.address.state.trim()) errors.push('State is required');
+            if (!newRestaurant.address.zipCode.trim()) errors.push('Zip code is required');
+            if (!newRestaurant.address.country.trim()) errors.push('Country is required');
+            
+            // Check cuisine
+            if (!newRestaurant.cuisine || newRestaurant.cuisine.length === 0) {
+                errors.push('At least one cuisine type is required');
+            }
+            
+            return errors;
+        }
+
+        function testValidRestaurant() {
+            const validRestaurant = {
+                name: 'Test Pizza Palace',
+                description: 'Authentic Italian pizza with fresh ingredients',
+                imageUrl: 'https://example.com/pizza-image.jpg',
+                bannerUrl: 'https://example.com/pizza-banner.jpg',
+                address: {
+                    street: '123 Main Street',
+                    city: 'New York',
+                    state: 'NY',
+                    zipCode: '10001',
+                    country: 'USA'
+                },
+                priceLevel: 2,
+                cuisine: ['Italian', 'Pizza'],
+                distance: 0,
+                deliveryTime: '30-45 min',
+                freeDelivery: false,
+                latitude: 40.7128,
+                longitude: -74.0060,
+                ownerEmail: 'owner@example.com'
+            };
+
+            const errors = validateRestaurantForm(validRestaurant);
+            const resultDiv = document.getElementById('validTest');
+            
+            if (errors.length === 0) {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Test Passed</h3>
+                        <p>Valid restaurant data passed all validation checks.</p>
+                        <div class="form-data">
+                            <strong>Restaurant Data:</strong>
+                            <pre>${JSON.stringify(validRestaurant, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Test Failed</h3>
+                        <p>Valid data should not have validation errors.</p>
+                        <p><strong>Errors:</strong></p>
+                        <ul>${errors.map(error => `<li>${error}</li>`).join('')}</ul>
+                    </div>
+                `;
+            }
+        }
+
+        function testInvalidRestaurant() {
+            const invalidRestaurant = {
+                name: '',
+                description: '',
+                imageUrl: '',
+                bannerUrl: '',
+                address: {
+                    street: '',
+                    city: '',
+                    state: '',
+                    zipCode: '',
+                    country: ''
+                },
+                cuisine: [],
+                deliveryTime: '',
+                ownerEmail: ''
+            };
+
+            const errors = validateRestaurantForm(invalidRestaurant);
+            const resultDiv = document.getElementById('invalidTest');
+            
+            if (errors.length > 0) {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Test Passed</h3>
+                        <p>Invalid restaurant data correctly failed validation with ${errors.length} errors.</p>
+                        <p><strong>Validation Errors:</strong></p>
+                        <ul>${errors.map(error => `<li>${error}</li>`).join('')}</ul>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Test Failed</h3>
+                        <p>Invalid data should have validation errors.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function testUrlValidation() {
+            const testCases = [
+                { url: 'https://example.com/image.jpg', valid: true },
+                { url: 'http://example.com/image.jpg', valid: true },
+                { url: 'ftp://example.com/image.jpg', valid: true },
+                { url: 'invalid-url', valid: false },
+                { url: 'just-text', valid: false },
+                { url: '', valid: false }
+            ];
+
+            let results = [];
+            testCases.forEach(testCase => {
+                const restaurant = {
+                    name: 'Test',
+                    description: 'Test',
+                    imageUrl: testCase.url,
+                    bannerUrl: 'https://example.com/banner.jpg',
+                    address: { street: 'Test', city: 'Test', state: 'Test', zipCode: 'Test', country: 'Test' },
+                    cuisine: ['Test'],
+                    deliveryTime: 'Test',
+                    ownerEmail: 'test@example.com'
+                };
+
+                const errors = validateRestaurantForm(restaurant);
+                const hasUrlError = errors.some(error => error.includes('URL'));
+                const testPassed = testCase.valid ? !hasUrlError : hasUrlError;
+
+                results.push({
+                    url: testCase.url,
+                    expected: testCase.valid ? 'Valid' : 'Invalid',
+                    actual: hasUrlError ? 'Invalid' : 'Valid',
+                    passed: testPassed
+                });
+            });
+
+            const allPassed = results.every(r => r.passed);
+            const resultDiv = document.getElementById('urlTest');
+            
+            resultDiv.innerHTML = `
+                <div class="${allPassed ? 'success' : 'error'}">
+                    <h3>${allPassed ? '✅' : '❌'} URL Validation Test ${allPassed ? 'Passed' : 'Failed'}</h3>
+                    <table border="1" style="width:100%; border-collapse: collapse;">
+                        <tr><th>URL</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+                        ${results.map(r => `
+                            <tr style="background-color: ${r.passed ? '#d4edda' : '#f8d7da'}">
+                                <td>${r.url || '(empty)'}</td>
+                                <td>${r.expected}</td>
+                                <td>${r.actual}</td>
+                                <td>${r.passed ? '✅' : '❌'}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+        }
+
+        function testEmailValidation() {
+            const testCases = [
+                { email: 'test@example.com', valid: true },
+                { email: 'user.name@domain.co.uk', valid: true },
+                { email: 'invalid-email', valid: false },
+                { email: '@domain.com', valid: false },
+                { email: 'user@', valid: false },
+                { email: '', valid: false }
+            ];
+
+            let results = [];
+            testCases.forEach(testCase => {
+                const restaurant = {
+                    name: 'Test',
+                    description: 'Test',
+                    imageUrl: 'https://example.com/image.jpg',
+                    bannerUrl: 'https://example.com/banner.jpg',
+                    address: { street: 'Test', city: 'Test', state: 'Test', zipCode: 'Test', country: 'Test' },
+                    cuisine: ['Test'],
+                    deliveryTime: 'Test',
+                    ownerEmail: testCase.email
+                };
+
+                const errors = validateRestaurantForm(restaurant);
+                const hasEmailError = errors.some(error => error.includes('email'));
+                const testPassed = testCase.valid ? !hasEmailError : hasEmailError;
+
+                results.push({
+                    email: testCase.email,
+                    expected: testCase.valid ? 'Valid' : 'Invalid',
+                    actual: hasEmailError ? 'Invalid' : 'Valid',
+                    passed: testPassed
+                });
+            });
+
+            const allPassed = results.every(r => r.passed);
+            const resultDiv = document.getElementById('emailTest');
+            
+            resultDiv.innerHTML = `
+                <div class="${allPassed ? 'success' : 'error'}">
+                    <h3>${allPassed ? '✅' : '❌'} Email Validation Test ${allPassed ? 'Passed' : 'Failed'}</h3>
+                    <table border="1" style="width:100%; border-collapse: collapse;">
+                        <tr><th>Email</th><th>Expected</th><th>Actual</th><th>Result</th></tr>
+                        ${results.map(r => `
+                            <tr style="background-color: ${r.passed ? '#d4edda' : '#f8d7da'}">
+                                <td>${r.email || '(empty)'}</td>
+                                <td>${r.expected}</td>
+                                <td>${r.actual}</td>
+                                <td>${r.passed ? '✅' : '❌'}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+        }
+
+        // Auto-run all tests on page load
+        window.onload = function() {
+            testValidRestaurant();
+            testInvalidRestaurant();
+            testUrlValidation();
+            testEmailValidation();
+        };
+    </script>
+</body>
+</html>
